@@ -1,0 +1,30 @@
+# 证书目录
+cert/
+!cert/.gitkeep
+*.pem
+*.p12
+
+# 环境变量
+.env
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+wechatpay-native-demo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

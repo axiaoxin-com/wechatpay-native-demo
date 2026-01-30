@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>商品列表 - 微信支付Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          sans-serif;
+        background: #f5f5f5;
+        padding: 40px 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 40px;
+        font-size: 32px;
+      }
+
+      .products {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 30px;
+      }
+
+      .product-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition:
+          transform 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      }
+
+      .product-image {
+        height: 200px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 48px;
+      }
+
+      .product-info {
+        padding: 24px;
+      }
+
+      .product-name {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 12px;
+      }
+
+      .product-desc {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 20px;
+      }
+
+      .product-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .price {
+        font-size: 28px;
+        color: #ff6b6b;
+        font-weight: bold;
+      }
+
+      .price span {
+        font-size: 16px;
+      }
+
+      .buy-btn {
+        padding: 12px 30px;
+        background: #07c160;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.3s;
+      }
+
+      .buy-btn:hover {
+        background: #06ad56;
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>微信支付 Native支付 Demo</h1>
+
+      <div class="products">
+        <div class="product-card">
+          <div class="product-image">📱</div>
+          <div class="product-info">
+            <div class="product-name">高级会员 1个月</div>
+            <div class="product-desc">
+              解锁全部高级功能，享受VIP专属服务，无限制使用所有特性。
+            </div>
+            <div class="product-footer">
+              <div class="price"><span>¥</span>29.90</div>
+              <button class="buy-btn" onclick="buy('高级会员 1个月', 2990)">
+                立即购买
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">💎</div>
+          <div class="product-info">
+            <div class="product-name">高级会员 1年</div>
+            <div class="product-desc">
+              年度会员更优惠，相当于每月仅需19.9元，节省33%。
+            </div>
+            <div class="product-footer">
+              <div class="price"><span>¥</span>199.00</div>
+              <button class="buy-btn" onclick="buy('高级会员 1年', 19900)">
+                立即购买
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🎁</div>
+          <div class="product-info">
+            <div class="product-name">测试商品 0.01元</div>
+            <div class="product-desc">
+              用于测试支付流程，实际支付0.01元，支付后可申请退款。
+            </div>
+            <div class="product-footer">
+              <div class="price"><span>¥</span>0.01</div>
+              <button class="buy-btn" onclick="buy('测试商品', 1)">
+                立即购买
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function buy(productName, amount) {
+        // 跳转到支付页面
+        window.location.href =
+          "/pay?product=" +
+          encodeURIComponent(productName) +
+          "&amount=" +
+          amount;
+      }
+    </script>
+  </body>
+</html>

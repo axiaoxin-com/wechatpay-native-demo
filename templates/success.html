@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付成功 - 微信支付Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: #07c160;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: scaleIn 0.5s ease;
+        }
+
+        .success-icon::after {
+            content: "✓";
+            color: white;
+            font-size: 50px;
+            font-weight: bold;
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .order-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .order-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-info-label {
+            color: #666;
+        }
+
+        .order-info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: #07c160;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background: #06ad56;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(7,193,96,0.3);
+        }
+
+        .tips {
+            margin-top: 30px;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon"></div>
+        <h1>支付成功</h1>
+        <p>感谢您的购买，订单已支付成功</p>
+
+        <div class="order-info">
+            <div class="order-info-item">
+                <span class="order-info-label">订单编号</span>
+                <span class="order-info-value" id="order-id">{{.order_id}}</span>
+            </div>
+            <div class="order-info-item">
+                <span class="order-info-label">支付时间</span>
+                <span class="order-info-value" id="pay-time">-</span>
+            </div>
+            <div class="order-info-item">
+                <span class="order-info-label">支付方式</span>
+                <span class="order-info-value">微信支付</span>
+            </div>
+        </div>
+
+        <a href="/" class="btn">返回首页</a>
+
+        <p class="tips">如有问题，请联系客服</p>
+    </div>
+
+    <script>
+        // 显示当前时间
+        document.getElementById('pay-time').textContent = new Date().toLocaleString('zh-CN');
+    </script>
+</body>
+</html>

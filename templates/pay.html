@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信支付 - 扫码付款</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .amount {
+            font-size: 48px;
+            color: #07c160;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .amount span {
+            font-size: 24px;
+        }
+
+        .qrcode-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        #qrcode {
+            margin: 0 auto;
+        }
+
+        .tips {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .tips .highlight {
+            color: #07c160;
+            font-weight: bold;
+        }
+
+        .countdown {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .refresh-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #07c160;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #06ad56;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(7,193,96,0.3);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .back-link {
+            margin-top: 20px;
+            display: inline-block;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            color: #07c160;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>微信扫码支付</h1>
+            <p id="product-name">加载中...</p>
+        </div>
+
+        <div class="amount">
+            <span>¥</span><span id="amount">0.00</span>
+        </div>
+
+        <div class="qrcode-container">
+            <div id="qrcode"></div>
+        </div>
+
+        <div class="tips">
+            <p>请使用微信扫一扫扫描二维码完成支付</p>
+            <p class="highlight">注意：不支持长按识别或从相册识别</p>
+        </div>
+
+        <div class="countdown" id="countdown">
+            二维码有效期：<span id="timer">02:00</span>
+        </div>
+
+        <button class="refresh-btn" onclick="refreshOrder()">刷新二维码</button>
+
+        <br>
+        <a href="/orders.html" class="back-link">返回订单管理</a>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        let orderId = '';
+        let checkInterval = null;
+        let countdownInterval = null;
+        let remainingTime = 2 * 60; // 2分钟（code_url有效期）
+
+        // 页面加载时执行
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const existingOrderId = urlParams.get('order_id');
+
+            if (existingOrderId) {
+                // 如果传入了已有订单号，查询订单信息并展示
+                loadExistingOrder(existingOrderId);
+            } else {
+                // 否则创建新订单（首页购买流程）
+                createNewOrder();
+            }
+        };
+
+        // 加载已有订单
+        function loadExistingOrder(id) {
+            orderId = id;
+
+            fetch('/api/order/' + orderId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showStatus('error', '订单不存在：' + data.error);
+                        return;
+                    }
+
+                    // 检查订单状态
+                    if (data.status !== 'NOTPAY') {
+                        showStatus('error', '订单状态异常：' + data.status);
+                        return;
+                    }
+
+                    // 更新页面信息
+                    document.getElementById('product-name').textContent = data.description || '商品订单';
+                    document.getElementById('amount').textContent = (data.amount / 100).toFixed(2);
+
+                    // 重新创建支付（获取新的code_url）
+                    recreatePayment(orderId, data.description, data.amount);
+                })
+                .catch(error => {
+                    showStatus('error', '加载订单失败：' + error.message);
+                });
+        }
+
+        // 重新创建支付（获取新的支付二维码）
+        function recreatePayment(outTradeNo, description, amount) {
+            fetch('/api/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_name: description,
+                    amount: amount,
+                    out_trade_no: outTradeNo // 告诉后端使用原订单号重新下单
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus('error', '创建支付失败：' + data.error);
+                    return;
+                }
+
+                // 使用新的code_url生成二维码
+                generateQRCode(data.code_url);
+
+                // 开始倒计时
+                startCountdown();
+
+                // 开始轮询查询订单状态
+                startPolling();
+            })
+            .catch(error => {
+                showStatus('error', '网络错误：' + error.message);
+            });
+        }
+
+        // 创建新订单（首页直接购买）
+        function createNewOrder() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productName = urlParams.get('product') || '测试商品';
+            const amount = parseInt(urlParams.get('amount')) || 1;
+
+            fetch('/api/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_name: productName,
+                    amount: amount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus('error', '创建订单失败：' + data.error);
+                    return;
+                }
+
+                orderId = data.order_id;
+
+                // 更新页面信息
+                document.getElementById('product-name').textContent = data.product_name;
+                document.getElementById('amount').textContent = (data.amount / 100).toFixed(2);
+
+                // 生成二维码
+                generateQRCode(data.code_url);
+
+                // 开始倒计时
+                startCountdown();
+
+                // 开始轮询查询订单状态
+                startPolling();
+            })
+            .catch(error => {
+                showStatus('error', '网络错误：' + error.message);
+            });
+        }
+
+        // 生成二维码
+        function generateQRCode(url) {
+            const container = document.getElementById('qrcode');
+            container.innerHTML = '';
+
+            new QRCode(container, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        // 开始倒计时
+        function startCountdown() {
+            remainingTime = 2 * 60; // 重置为2分钟
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            countdownInterval = setInterval(function() {
+                remainingTime--;
+
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('timer').textContent = '已过期';
+                    document.getElementById('countdown').style.background = '#f8d7da';
+                    document.getElementById('countdown').style.color = '#721c24';
+                    return;
+                }
+
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = remainingTime % 60;
+                document.getElementById('timer').textContent =
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+            }, 1000);
+        }
+
+        // 开始轮询查询订单状态
+        function startPolling() {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+
+            checkInterval = setInterval(function() {
+                checkOrderStatus();
+            }, 3000);
+        }
+
+        // 查询订单状态
+        function checkOrderStatus() {
+            if (!orderId) return;
+
+            fetch('/api/order/' + orderId)
+            .then(response => response.json())
+            .then(data => {
+                // 如果支付成功
+                if (data.status === 'SUCCESS') {
+                    clearInterval(checkInterval);
+                    clearInterval(countdownInterval);
+                    showStatus('success', '支付成功！即将跳转...');
+
+                    setTimeout(function() {
+                        window.location.href = '/success?order_id=' + orderId;
+                    }, 2000);
+                } else if (data.status === 'CLOSED') {
+                    clearInterval(checkInterval);
+                    showStatus('error', '订单已关闭');
+                }
+            })
+            .catch(error => {
+                console.error('查询订单状态失败:', error);
+            });
+        }
+
+        // 刷新订单（重新获取二维码）
+        function refreshOrder() {
+            clearInterval(checkInterval);
+            clearInterval(countdownInterval);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const existingOrderId = urlParams.get('order_id');
+
+            if (existingOrderId) {
+                // 刷新已有订单的支付二维码
+                loadExistingOrder(existingOrderId);
+            } else {
+                // 创建新订单
+                createNewOrder();
+            }
+        }
+
+        // 显示状态信息
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+
+        // 页面关闭时清理定时器
+        window.onbeforeunload = function() {
+            if (checkInterval) clearInterval(checkInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+        };
+    </script>
+</body>
+</html>
